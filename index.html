@@ -193,6 +193,22 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
     for (var i = 0; i < toks.length; i++){ if (/\d/.test(toks[i])) break; out.push(toks[i]); }
     return out.join(' ') || t;
   }
+  // Laboratorio como vem do ERP ("GLAXOSMITHKLINE- OTC", "LEGRAND GENERICOS",
+  // "PRATI  DONADUZZI") -> o que ajuda na busca ("GLAXOSMITHKLINE", "LEGRAND", "PRATI DONADUZZI").
+  function labLimpo(s){
+    s = String(s || '').replace(/\s+/g, ' ').trim();
+    s = s.replace(/\s*-\s*OTC\b/i, '').replace(/\bOTC\b/i, '');
+    s = s.replace(/\b(GENERICOS?|LTDA\.?|S\/A|S\.A\.?|IND\.?|INDUSTRIA|FARMACEUTICA|LABORATORIOS?|MEDICAMENTOS|DO BRASIL)\b/gi, '');
+    return s.replace(/\s+/g, ' ').replace(/^[\s\-]+|[\s\-]+$/g, '').trim();
+  }
+  // termo padrao da busca de imagem: titulo ate a virgula + laboratorio
+  // ("PARACETAMOL 750MG 10 CPR PRATI DONADUZZI"). Sem o laboratorio, o Google
+  // devolve a caixa de qualquer fabricante.
+  function termoPadrao(it){
+    var nome = String(it.title || '').split(',')[0].replace(/\s+/g, ' ').trim();
+    var lab = labLimpo(it.laboratorio);
+    return lab ? nome + ' ' + lab : nome;
+  }
 
   async function api(corpo){
     var url = $('url').value.trim(), token = $('token').value.trim();
@@ -316,15 +332,15 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
 
   // ---------- vitrine ----------
   function painel(it){
-    // termo padrao: o titulo ate a virgula ("CIMEGRIPE 20 CAPSULAS"). Nome = so a marca. EAN = codigo.
-    var termo = imgTermo != null ? imgTermo : String(it.title||'').split(',')[0].trim();
+    // termo padrao: titulo ate a virgula + laboratorio. "Nome + lab" = so a marca + laboratorio. EAN = codigo.
+    var termo = imgTermo != null ? imgTermo : termoPadrao(it);
     var google = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(termo || it.title || '');
     return '<div class="painel">'
       + '<div class="tit">Foto de ' + esc(it.title) + '</div>'
       + '<div class="urlbox" style="margin-top:0">'
       +   '<input type="text" id="imgtermo" value="' + esc(termo) + '" placeholder="o que procurar" autocomplete="off">'
       +   '<button class="mini primario" data-buscaimg="'+it.product_id+'">Procurar imagens</button>'
-      +   '<button class="mini" data-nome="'+it.product_id+'">Nome</button>'
+      +   '<button class="mini" data-nome="'+it.product_id+'">Nome + lab</button>'
       +   '<button class="mini" data-ean="'+it.product_id+'"' + (it.ean ? '' : ' disabled') + '>EAN</button>'
       + '</div>'
       + grade()
@@ -372,6 +388,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
         + '<div class="info"><div class="nome">' + esc(it.title) + '</div>'
         +   '<div class="meta"><span class="mono">' + it.product_id + '</span>'
         +   (it.ean ? ' · <span class="mono">' + esc(it.ean) + '</span>' : '')
+        +   (it.laboratorio ? ' · ' + esc(it.laboratorio) : '')
         +   ' · ' + preco + ' · estoque ' + it.estoque + alerta + '</div></div>'
         + '<button class="mini" data-tira="'+it.product_id+'">remover</button>'
         + '</div>'
@@ -394,7 +411,11 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
       var ci = $('imgtermo'); procurar(+d.buscaimg, ci ? ci.value : ''); return;
     }
     if (d.ean != null){ var i1 = achar(+d.ean); if (i1) procurar(i1.product_id, i1.ean); return; }
-    if (d.nome != null){ var i2 = achar(+d.nome); if (i2) procurar(i2.product_id, nomeCurto(i2)); return; }
+    if (d.nome != null){
+      var i2 = achar(+d.nome);
+      if (i2){ var lab2 = labLimpo(i2.laboratorio); procurar(i2.product_id, nomeCurto(i2) + (lab2 ? ' ' + lab2 : '')); }
+      return;
+    }
     if (d.tira != null){
       itens = itens.filter(function(x){ return x.product_id !== +d.tira; });
       if (aberto === +d.tira){ aberto = null; imgTermo = null; limparBusca(); }
@@ -444,6 +465,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
         + '<div class="nome">' + esc(p.title) + '</div>'
         + '<div class="meta"><span class="mono">' + p.product_id + '</span>'
         + (p.ean ? ' · <span class="mono">' + esc(p.ean) + '</span>' : '')
+        + (p.laboratorio ? ' · ' + esc(p.laboratorio) : '')
         + ' · ' + preco + ' · estoque ' + p.estoque + '</div></div>' + acao + '</div>';
     });
     $('resultados').innerHTML = h;
@@ -458,8 +480,8 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
     }
     var p = (window.__ultimaBusca || []).find(function(x){ return x.product_id === +b.dataset.add; });
     if (!p) return;
-    itens.push({ product_id:p.product_id, ean:p.ean||'', title:p.title, preco:p.preco,
-                 de:p.de, oferta:p.oferta, estoque:p.estoque, bloqueio:null,
+    itens.push({ product_id:p.product_id, ean:p.ean||'', title:p.title, laboratorio:p.laboratorio||'',
+                 preco:p.preco, de:p.de, oferta:p.oferta, estoque:p.estoque, bloqueio:null,
                  thumb_b64:'', alt_text:p.title });
     aberto = p.product_id; imgTermo = null; limparBusca();   // ja abre o painel da foto
     pintarVitrine();
@@ -488,8 +510,8 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
     try{
       var r = await api({ acao:'vitrine' });
       itens = r.itens.map(function(d){
-        return { product_id:d.product_id, ean:d.ean||'', title:d.title, preco:d.preco, de:d.de,
-                 oferta:d.oferta, estoque:d.estoque, bloqueio:d.bloqueio,
+        return { product_id:d.product_id, ean:d.ean||'', title:d.title, laboratorio:d.laboratorio||'',
+                 preco:d.preco, de:d.de, oferta:d.oferta, estoque:d.estoque, bloqueio:d.bloqueio,
                  thumb_b64:d.thumb_b64||'', alt_text:d.alt_text||d.title };
       });
       aberto = null; imgTermo = null; limparBusca(); pintarVitrine();
