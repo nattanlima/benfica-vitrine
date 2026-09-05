@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitrine do WhatsApp · Drogaria Benfica</title>
+<style>
+  :root{
+    --bg:#f6f7f5; --card:#fff; --linha:#e2e6e0; --txt:#16211a; --fraco:#5d6b62;
+    --verde:#0f5132; --verde-claro:#e8f1ec; --erro:#8a1c1c; --erro-bg:#fbeaea;
+    --alerta:#7a5200; --alerta-bg:#fdf3e0; --raio:10px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#12160f; --card:#1a1f18; --linha:#2c342a; --txt:#e8ede7; --fraco:#9aa89f;
+      --verde:#5cb98a; --verde-claro:#1c2a22; --erro:#f0a0a0; --erro-bg:#301a1a;
+      --alerta:#e0b768; --alerta-bg:#2c2415;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:920px;margin:0 auto;padding:26px 18px 90px}
+  h1{font-size:21px;margin:0 0 3px;letter-spacing:-.01em}
+  .sub{color:var(--fraco);font-size:13.5px;margin:0 0 22px}
+  section{background:var(--card);border:1px solid var(--linha);border-radius:var(--raio);
+    padding:17px 19px;margin-bottom:14px}
+  h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fraco);
+    margin:0 0 13px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .cont{font-size:12px;color:var(--fraco);text-transform:none;letter-spacing:0}
+  label{display:block;font-size:12.5px;color:var(--fraco);margin:0 0 5px}
+  input[type=text],input[type=password],input[type=number],input[type=search],input[type=url]{
+    width:100%;padding:9px 11px;border:1px solid var(--linha);border-radius:7px;
+    background:var(--bg);color:var(--txt);font:inherit}
+  .grid{display:grid;gap:12px}
+  .g3{grid-template-columns:2fr 1.2fr .7fr}
+  @media(max-width:700px){.g3{grid-template-columns:1fr}}
+  button{font:inherit;font-weight:600;border-radius:7px;padding:9px 15px;cursor:pointer;
+    border:1px solid var(--linha);background:var(--card);color:var(--txt);white-space:nowrap}
+  button:hover:not(:disabled){border-color:var(--verde);color:var(--verde)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primario{background:var(--verde);border-color:var(--verde);color:#fff}
+  button.primario:hover:not(:disabled){color:#fff;filter:brightness(1.1)}
+  button.mini{padding:4px 9px;font-size:12.5px;font-weight:500}
+  .barra{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  .busca{display:flex;gap:9px}
+  .busca input{flex:1}
+  .linha{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--linha);align-items:center}
+  .linha.sembaixo{border-bottom:0;padding-bottom:4px}
+  .info{flex:1;min-width:0}
+  .nome{font-size:14px;font-weight:600;line-height:1.3;word-break:break-word}
+  .meta{font-size:12.5px;color:var(--fraco);margin-top:2px}
+  .preco{color:var(--verde);font-weight:600}
+  .risco{text-decoration:line-through;color:var(--fraco);font-weight:400}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .no{background:var(--erro-bg);color:var(--erro)}
+  .al{background:var(--alerta-bg);color:var(--alerta)}
+  .ok{background:var(--verde-claro);color:var(--verde)}
+  .thumb{width:52px;height:52px;border-radius:7px;object-fit:cover;border:1px solid var(--linha);
+    flex:none;cursor:pointer}
+  .semfoto{width:52px;height:52px;border-radius:7px;border:1px dashed var(--linha);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--fraco);
+    text-align:center;cursor:pointer;line-height:1.2;padding:3px}
+  .semfoto:hover{border-color:var(--verde);color:var(--verde)}
+  .ordem{display:flex;flex-direction:column;gap:2px;flex:none}
+  .ordem button{padding:1px 7px;font-size:11px;line-height:1.5}
+  .painel{background:var(--bg);border:1px solid var(--linha);border-radius:8px;
+    padding:13px 15px;margin:0 0 11px 64px}
+  .painel .tit{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--fraco);
+    font-weight:600;margin-bottom:9px}
+  .painel .urlbox{display:flex;gap:8px;margin-top:10px}
+  .painel .urlbox input{flex:1}
+  .achar{margin-top:10px;font-size:12.5px;color:var(--fraco)}
+  .vazio{color:var(--fraco);font-size:13.5px;padding:10px 0}
+  .aviso{border-radius:7px;padding:10px 13px;font-size:13.5px;margin-top:12px;
+    background:var(--verde-claro);color:var(--verde)}
+  .aviso.erro{background:var(--erro-bg);color:var(--erro)}
+  .aviso.al{background:var(--alerta-bg);color:var(--alerta)}
+  .nota{color:var(--fraco);font-size:12.5px;margin-top:9px}
+  .nota a{color:var(--verde);font-weight:600;text-decoration:none}
+  .nota a:hover{text-decoration:underline}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:6px 8px;border-bottom:1px solid var(--linha)}
+  /* caixa onde o Google renderiza os resultados de imagem */
+  #cse-slot{margin-top:10px;min-height:0}
+  #cse-box .gsc-control-cse{background:transparent;border:0;padding:0;font-family:inherit}
+  #cse-box .gsc-search-box,#cse-box .gsc-above-wrapper-area{display:none} /* a caixa de busca e a nossa */
+  #cse-box .gsc-imageResult{cursor:pointer}
+  #cse-box .gsc-imageResult:hover{outline:2px solid var(--verde);outline-offset:1px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Vitrine do WhatsApp</h1>
+<p class="sub">Drogaria Benfica. Busca no ERP, monta a vitrine e publica.
+Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
+
+<section>
+  <h2>Conexão</h2>
+  <div class="grid g3">
+    <div>
+      <label for="url">URL do webhook</label>
+      <input type="text" id="url" class="mono"
+        value="https://prismen8n.prismeapp.com.br/webhook/carga-destaques-benfica">
+    </div>
+    <div>
+      <label for="token">Segredo (x-carga-token)</label>
+      <input type="password" id="token" placeholder="cole aqui">
+    </div>
+    <div>
+      <label for="loja">Loja</label>
+      <input type="number" id="loja" value="1" min="1">
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <label for="cx">ID do mecanismo de busca do Google (cx), só para procurar imagens</label>
+    <input type="text" id="cx" class="mono" placeholder="opcional. em branco, a busca de imagem fica desligada">
+    <p class="nota">Um cadastro de uma vez só, sem chave e sem Google Cloud:
+      <a href="https://programmablesearchengine.google.com/controlpanel/all"
+         target="_blank" rel="noopener">criar o mecanismo de busca</a>, ligar a
+      busca de imagens e listar os sites onde procurar (laboratórios, distribuidores,
+      farmácias online; o Google só procura nos sites listados). Copie o
+      <b>ID do mecanismo</b> para este campo.</p>
+  </div>
+  <div class="barra" style="margin-top:13px">
+    <button id="carregar">Carregar vitrine atual</button>
+    <button id="testar">Testar conexão</button>
+    <span class="nota" style="margin:0">O segredo fica só no seu navegador.</span>
+  </div>
+  <div id="diag"></div>
+</section>
+
+<section>
+  <h2>Buscar produto</h2>
+  <div class="busca">
+    <input type="search" id="termo" placeholder="dipirona, cimegripe, sal de fruta..."
+      autocomplete="off">
+    <button id="buscar" class="primario">Buscar</button>
+  </div>
+  <p class="nota">A busca casa no título do produto, uma palavra de cada vez.
+  Não procura por laboratório nem apresentação.</p>
+  <div id="resultados"></div>
+</section>
+
+<section>
+  <h2>Vitrine <span class="cont" id="contador">0 de 20</span></h2>
+  <div id="vitrine"><p class="vazio">Nenhum produto ainda. Busque acima e vá adicionando.</p></div>
+  <p class="nota">A ordem daqui é a ordem que o cliente vê no WhatsApp.
+  Produto removido daqui sai da vitrine ao publicar.</p>
+</section>
+
+<section>
+  <h2>Publicar</h2>
+  <div class="barra">
+    <button id="simular">Conferir no ERP</button>
+    <button id="publicar" class="primario" disabled>Publicar vitrine</button>
+  </div>
+  <div id="msg"></div>
+  <p class="nota">Publicar troca a vitrine inteira da loja: o que não estiver na lista
+  acima sai do ar. Histórico não é apagado, só desativado.</p>
+</section>
+
+</div>
+
+<input type="file" id="picker" accept="image/*" hidden>
+<!-- o elemento do Google vive aqui e e MOVIDO para dentro do painel aberto,
+     porque re-renderizar a vitrine com innerHTML destruiria os resultados -->
+<div id="cse-holder" hidden><div id="cse-box"></div></div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var LIMITE = 20, ALVO_KB = 30, LADO = 300;
+  var itens = [];
+  var aberto = null;            // product_id com o painel de imagem aberto
+  var imgTermo = null;          // ultimo termo procurado
+  var cse = { estado:'nao', fila:null, aviso:'' };   // estado do embed do Google
+
+  ['url','token','loja','cx'].forEach(function(k){
+    try{ var v = localStorage.getItem('benfica_'+k); if(v) $(k).value = v; }catch(e){}
+    // 'input' e nao 'change': com 'change' o valor so era salvo ao sair do campo
+    $(k).addEventListener('input', function(){
+      try{ localStorage.setItem('benfica_'+k, $(k).value); }catch(e){}
+    });
+  });
+
+  function moeda(v){ return 'R$ ' + (Math.round((Number(v)||0)*100)/100).toFixed(2).replace('.', ','); }
+  function aviso(t, tipo){ $('msg').innerHTML = '<div class="aviso ' + (tipo||'') + '">' + t + '</div>'; }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+    });
+  }
+  function achar(id){ return itens.find(function(x){ return x.product_id === id; }); }
+
+  async function api(corpo){
+    var url = $('url').value.trim(), token = $('token').value.trim();
+    if (!url || !token) throw new Error('Preencha a URL e o segredo na Conexão.');
+    corpo.shop_id = parseInt($('loja').value, 10) || 1;
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type':'application/json', 'x-carga-token': token },
+      body: JSON.stringify(corpo)
+    });
+    var txt = await res.text();
+    if (!res.ok) throw new Error('o webhook respondeu ' + res.status + '. ' + txt.slice(0,200));
+    return JSON.parse(txt);
+  }
+
+  // ---------- imagem: 300x300 cover, JPEG, comprime ate caber ----------
+  function processar(src){
+    return new Promise(function(res, rej){
+      var img = new Image();
+      img.onload = function(){
+        var cv = document.createElement('canvas');
+        cv.width = LADO; cv.height = LADO;
+        var ctx = cv.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,LADO,LADO);
+        var e = Math.max(LADO/img.width, LADO/img.height);
+        var w = img.width*e, h = img.height*e;
+        ctx.drawImage(img, (LADO-w)/2, (LADO-h)/2, w, h);
+        var q = 0.85, b64 = '', bytes = 0;
+        for (var i = 0; i < 9; i++){
+          b64 = cv.toDataURL('image/jpeg', q).split(',')[1];
+          bytes = Math.round(b64.length*3/4);
+          if (bytes <= ALVO_KB*1024 || q <= 0.3) break;
+          q -= 0.08;
+        }
+        if (/^blob:/.test(img.src)) URL.revokeObjectURL(img.src);
+        res({ thumb_b64: b64, bytes: bytes, largura: LADO, altura: LADO });
+      };
+      img.onerror = function(){ rej(new Error('não consegui ler essa imagem')); };
+      img.src = src;
+    });
+  }
+
+  async function aplicar(id, src){
+    var it = achar(id);
+    if (!it) return;
+    try{
+      var r = await processar(src);
+      it.thumb_b64 = r.thumb_b64; it.bytes = r.bytes;
+      it.largura = r.largura; it.altura = r.altura;
+      aberto = null; imgTermo = null;
+      pintarVitrine();
+      aviso('Foto de ' + esc(it.title) + ' pronta: ' + (r.bytes/1024).toFixed(1) + ' KB.');
+    }catch(err){ aviso(err.message, 'erro'); }
+  }
+
+  // arquivo
+  $('picker').addEventListener('change', function(e){
+    var f = e.target.files[0];
+    if (f && aberto != null) aplicar(aberto, URL.createObjectURL(f));
+    e.target.value = '';
+  });
+
+  // colar da area de transferencia
+  document.addEventListener('paste', function(e){
+    if (aberto == null) return;
+    var its = (e.clipboardData || {}).items || [];
+    for (var i = 0; i < its.length; i++){
+      if (/^image\//.test(its[i].type)){
+        var f = its[i].getAsFile();
+        if (f){ e.preventDefault(); aplicar(aberto, URL.createObjectURL(f)); return; }
+      }
+    }
+  });
+
+  // url, baixada pelo servidor (o navegador esbarraria em CORS).
+  // Se a URL nao for imagem e houver um reserva (miniatura), tenta o reserva.
+  async function baixar(id, url, reserva){
+    if (!url) return;
+    aviso('Baixando a imagem...');
+    try{
+      var r = await api({ acao:'imagem', url:url });
+      if (!r.ok){
+        if (reserva && reserva !== url){ return baixar(id, reserva, null); }
+        aviso(r.erro, 'erro'); return;
+      }
+      await aplicar(id, 'data:' + r.mime + ';base64,' + r.b64);
+    }catch(err){ aviso('Não consegui baixar: ' + err.message, 'erro'); }
+  }
+
+  // ---------- embed do Google (Programmable Search Engine) ----------
+  // So precisa do cx. Sem chave, sem Google Cloud, sem cota diaria.
+  function cseCarregar(cx){
+    if (cse.estado !== 'nao') return;
+    cse.estado = 'carregando';
+    window.__gcse = {
+      parsetags: 'explicit',
+      initializationCallback: function(){
+        try{
+          google.search.cse.element.render({
+            div: 'cse-box', tag: 'search', gname: 'benfica',
+            attributes: { enableImageSearch: true, defaultToImageSearch: true,
+                          disableWebSearch: true, imageSearchLayout: 'column',
+                          enableAutoComplete: false, enableHistory: false }
+          });
+          cse.estado = 'pronto';
+          if (cse.fila){ cseExecutar(cse.fila); cse.fila = null; }
+        }catch(e){ cse.estado = 'erro'; cse.aviso = 'O Google não inicializou: ' + e.message; pintarVitrine(); }
+      },
+      searchCallbacks: { image: { rendered: cseRenderizou } }
+    };
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://cse.google.com/cse.js?cx=' + encodeURIComponent(cx);
+    s.onerror = function(){ cse.estado = 'erro'; cse.aviso = 'Não consegui carregar o script do Google. A página está sendo aberta por http?'; pintarVitrine(); };
+    document.head.appendChild(s);
+  }
+  function cseExecutar(termo){
+    if (cse.estado !== 'pronto'){ cse.fila = termo; return; }
+    try{ google.search.cse.element.getElement('benfica').execute(termo); }
+    catch(e){ cse.aviso = 'Falha ao procurar: ' + e.message; pintarVitrine(); }
+  }
+  // Depois que o Google desenha os resultados, um clique em qualquer imagem
+  // vira "baixar essa" em vez de abrir o site de origem.
+  function cseRenderizou(gname, query, promos, results){
+    (results || []).forEach(function(el){
+      if (el.__benfica) return; el.__benfica = true;
+      el.addEventListener('click', function(ev){
+        if (aberto == null) return;
+        var a = ev.target.closest('a');
+        var img = (a && a.querySelector('img')) || el.querySelector('img');
+        var cheia = a ? (a.getAttribute('href') || '') : '';
+        var mini = img ? (img.currentSrc || img.src || '') : '';
+        var url = /^https?:/.test(cheia) ? cheia : mini;
+        if (!url) return;
+        ev.preventDefault(); ev.stopPropagation();
+        baixar(aberto, url, mini);
+      }, true);
+    });
+  }
+  function cseMoverPara(slot){
+    var box = $('cse-box');
+    if (slot && box.parentNode !== slot) slot.appendChild(box);
+    else if (!slot && box.parentNode !== $('cse-holder')) $('cse-holder').appendChild(box);
+  }
+
+  function procurar(id, termo){
+    var cx = $('cx').value.trim();
+    if (!cx){
+      cse.aviso = 'A busca de imagem está desligada porque falta o ID do mecanismo (cx) na Conexão, '
+        + 'lá em cima. É um cadastro de uma vez só no Google, e o link está lá. Enquanto isso, '
+        + 'dá para usar Escolher arquivo, Ctrl+V ou colar o endereço de uma imagem aqui embaixo.';
+      pintarVitrine(); return;
+    }
+    cse.aviso = ''; imgTermo = termo;
+    pintarVitrine();
+    cseCarregar(cx);
+    cseExecutar(termo);
+  }
+
+  // ---------- vitrine ----------
+  function painel(it){
+    var termo = imgTermo != null ? imgTermo : (it.ean || String(it.title||'').split(',')[0]);
+    return '<div class="painel">'
+      + '<div class="tit">Foto de ' + esc(it.title) + '</div>'
+      + '<div class="barra">'
+      +   '<button class="mini" data-arq="'+it.product_id+'">Escolher arquivo</button>'
+      +   '<span class="nota" style="margin:0">ou dê <b>Ctrl+V</b> agora para colar uma imagem copiada</span>'
+      + '</div>'
+      + '<div class="urlbox" style="margin-top:12px">'
+      +   '<input type="text" id="imgtermo" value="' + esc(termo) + '" placeholder="o que procurar">'
+      +   '<button class="mini primario" data-buscaimg="'+it.product_id+'">Procurar imagens</button>'
+      +   '<button class="mini" data-ean="'+it.product_id+'"' + (it.ean ? '' : ' disabled') + '>EAN</button>'
+      +   '<button class="mini" data-nome="'+it.product_id+'">Nome</button>'
+      + '</div>'
+      + (cse.aviso ? '<p class="vazio" style="color:var(--erro)">' + esc(cse.aviso) + '</p>' : '')
+      + (cse.estado === 'carregando' ? '<p class="vazio">Carregando o Google...</p>' : '')
+      + '<div id="cse-slot"></div>'
+      + '<div class="urlbox" style="margin-top:12px">'
+      +   '<input type="url" id="urlimg" placeholder="ou cole aqui o endereço de uma imagem">'
+      +   '<button class="mini" data-url="'+it.product_id+'">Baixar</button>'
+      + '</div>'
+      + '<div class="achar">Toque numa imagem para baixar, redimensionar e salvar. '
+      +   'Confira se você tem o direito de usar. O caminho limpo é pedir o material ao '
+      +   'laboratório ou ao distribuidor.</div>'
+      + '<div class="barra" style="margin-top:10px">'
+      +   '<button class="mini" data-fecha="1">Fechar</button>'
+      +   (it.thumb_b64 ? '<button class="mini" data-tirafoto="'+it.product_id+'">Remover foto</button>' : '')
+      + '</div></div>';
+  }
+
+  function pintarVitrine(){
+    cseMoverPara(null);   // tira o elemento do Google antes de destruir o HTML
+    $('contador').textContent = itens.length + ' de ' + LIMITE;
+    if (!itens.length){
+      $('vitrine').innerHTML = '<p class="vazio">Nenhum produto ainda. Busque acima e vá adicionando.</p>';
+      $('publicar').disabled = true; return;
+    }
+    var h = '';
+    itens.forEach(function(it, i){
+      var ab = aberto === it.product_id;
+      var foto = it.thumb_b64
+        ? '<img class="thumb" src="data:image/jpeg;base64,' + it.thumb_b64 + '" alt="" data-foto="'+it.product_id+'">'
+        : '<div class="semfoto" data-foto="'+it.product_id+'">+ foto</div>';
+      var preco = it.oferta
+        ? '<span class="risco">' + moeda(it.de) + '</span> <span class="preco">' + moeda(it.preco) + '</span>'
+        : '<span class="preco">' + moeda(it.preco) + '</span>';
+      var alerta = it.bloqueio ? ' <span class="tag no">' + esc(it.bloqueio) + '</span>'
+                 : (it.thumb_b64 ? '' : ' <span class="tag al">sem foto</span>');
+      h += '<div class="linha' + (ab ? ' sembaixo' : '') + '">'
+        + '<div class="ordem">'
+        +   '<button class="mini" data-sobe="'+i+'"' + (i===0?' disabled':'') + '>&uarr;</button>'
+        +   '<button class="mini" data-desce="'+i+'"' + (i===itens.length-1?' disabled':'') + '>&darr;</button>'
+        + '</div>' + foto
+        + '<div class="info"><div class="nome">' + esc(it.title) + '</div>'
+        +   '<div class="meta"><span class="mono">' + it.product_id + '</span>'
+        +   (it.ean ? ' · <span class="mono">' + esc(it.ean) + '</span>' : '')
+        +   ' · ' + preco + ' · estoque ' + it.estoque + alerta + '</div></div>'
+        + '<button class="mini" data-tira="'+it.product_id+'">remover</button>'
+        + '</div>'
+        + (ab ? painel(it) : '');
+    });
+    $('vitrine').innerHTML = h;
+    $('publicar').disabled = true;
+    if (aberto != null && $('cse-slot')) cseMoverPara($('cse-slot'));
+  }
+
+  $('vitrine').addEventListener('click', function(e){
+    var b = e.target.closest('[data-tira],[data-sobe],[data-desce],[data-foto],[data-arq],[data-url],[data-fecha],[data-tirafoto],[data-buscaimg],[data-ean],[data-nome]');
+    if (!b) return;
+    var d = b.dataset;
+    if (d.buscaimg != null){
+      var ci = $('imgtermo'); procurar(+d.buscaimg, ci ? ci.value.trim() : ''); return;
+    }
+    if (d.ean != null){ var i1 = achar(+d.ean); if (i1) procurar(i1.product_id, i1.ean); return; }
+    if (d.nome != null){
+      var i2 = achar(+d.nome);
+      if (i2) procurar(i2.product_id, String(i2.title||'').split(',')[0]);
+      return;
+    }
+    if (d.tira != null){
+      itens = itens.filter(function(x){ return x.product_id !== +d.tira; });
+      if (aberto === +d.tira){ aberto = null; imgTermo = null; }
+      pintarVitrine(); aviso('Removido da lista. Sai do ar quando você publicar.', 'al');
+    } else if (d.sobe != null){
+      var i = +d.sobe, t = itens[i-1]; itens[i-1] = itens[i]; itens[i] = t; pintarVitrine();
+    } else if (d.desce != null){
+      var j = +d.desce, u = itens[j+1]; itens[j+1] = itens[j]; itens[j] = u; pintarVitrine();
+    } else if (d.foto != null){
+      aberto = (aberto === +d.foto) ? null : +d.foto; imgTermo = null; cse.aviso = ''; pintarVitrine();
+    } else if (d.arq != null){
+      aberto = +d.arq; $('picker').click();
+    } else if (d.url != null){
+      var campo = $('urlimg'); baixar(+d.url, campo ? campo.value.trim() : '', null);
+    } else if (d.fecha != null){
+      aberto = null; imgTermo = null; cse.aviso = ''; pintarVitrine();
+    } else if (d.tirafoto != null){
+      var it = achar(+d.tirafoto);
+      if (it){ it.thumb_b64 = ''; it.bytes = 0; }
+      pintarVitrine();
+    }
+  });
+
+  // ---------- busca de produto ----------
+  function pintarResultados(r){
+    if (!r.resultados.length){
+      $('resultados').innerHTML = '<p class="vazio">Nada encontrado para "' + esc(r.termo) + '".</p>';
+      return;
+    }
+    var h = '';
+    r.resultados.forEach(function(p){
+      var dentro = itens.some(function(x){ return x.product_id === p.product_id; });
+      var preco = p.oferta
+        ? '<span class="risco">' + moeda(p.de) + '</span> <span class="preco">' + moeda(p.preco) + '</span>'
+        : '<span class="preco">' + moeda(p.preco) + '</span>';
+      var acao;
+      if (p.bloqueio) acao = '<span class="tag no">' + esc(p.bloqueio) + '</span>';
+      else if (dentro) acao = '<span class="tag al">já está</span>';
+      else acao = '<button class="mini" data-add="' + p.product_id + '">adicionar</button>';
+      h += '<div class="linha"><div class="info">'
+        + '<div class="nome">' + esc(p.title) + '</div>'
+        + '<div class="meta"><span class="mono">' + p.product_id + '</span>'
+        + (p.ean ? ' · <span class="mono">' + esc(p.ean) + '</span>' : '')
+        + ' · ' + preco + ' · estoque ' + p.estoque + '</div></div>' + acao + '</div>';
+    });
+    $('resultados').innerHTML = h;
+  }
+
+  $('resultados').addEventListener('click', function(e){
+    var b = e.target.closest('[data-add]');
+    if (!b) return;
+    if (itens.length >= LIMITE){
+      aviso('A vitrine já tem ' + LIMITE + ' produtos, que é o limite da Meta. Remova um antes.', 'erro');
+      return;
+    }
+    var p = (window.__ultimaBusca || []).find(function(x){ return x.product_id === +b.dataset.add; });
+    if (!p) return;
+    itens.push({ product_id:p.product_id, ean:p.ean||'', title:p.title, preco:p.preco,
+                 de:p.de, oferta:p.oferta, estoque:p.estoque, bloqueio:null,
+                 thumb_b64:'', alt_text:p.title });
+    aberto = p.product_id; imgTermo = null; cse.aviso = '';   // ja abre o painel da foto
+    pintarVitrine();
+    pintarResultados({ termo:$('termo').value, resultados:window.__ultimaBusca });
+  });
+
+  async function buscar(){
+    var t = $('termo').value.trim();
+    if (t.length < 3){ $('resultados').innerHTML = '<p class="vazio">Digite pelo menos 3 letras.</p>'; return; }
+    $('buscar').disabled = true;
+    $('resultados').innerHTML = '<p class="vazio">Consultando o ERP...</p>';
+    try{
+      var r = await api({ acao:'buscar', termo:t });
+      window.__ultimaBusca = r.resultados;
+      pintarResultados(r);
+    }catch(err){ $('resultados').innerHTML = ''; aviso('Busca falhou: ' + err.message, 'erro'); }
+    $('buscar').disabled = false;
+  }
+  $('buscar').addEventListener('click', buscar);
+  $('termo').addEventListener('keydown', function(e){ if (e.key === 'Enter') buscar(); });
+
+  // ---------- carregar o que ja esta no ar ----------
+  $('carregar').addEventListener('click', async function(){
+    $('carregar').disabled = true;
+    aviso('Lendo a vitrine que está no ar...');
+    try{
+      var r = await api({ acao:'vitrine' });
+      itens = r.itens.map(function(d){
+        return { product_id:d.product_id, ean:d.ean||'', title:d.title, preco:d.preco, de:d.de,
+                 oferta:d.oferta, estoque:d.estoque, bloqueio:d.bloqueio,
+                 thumb_b64:d.thumb_b64||'', alt_text:d.alt_text||d.title };
+      });
+      aberto = null; imgTermo = null; pintarVitrine();
+      var ruins = itens.filter(function(x){ return x.bloqueio; }).length;
+      aviso(itens.length + ' produtos no ar.'
+        + (ruins ? ' ' + ruins + ' com problema: já não aparecem para o cliente.' : ''),
+        ruins ? 'al' : '');
+    }catch(err){ aviso('Não consegui carregar: ' + err.message, 'erro'); }
+    $('carregar').disabled = false;
+  });
+
+  // ---------- diagnostico: exercita cada acao do webhook ----------
+  $('testar').addEventListener('click', async function(){
+    $('testar').disabled = true;
+    var linhas = [];
+    function pinta(){
+      $('diag').innerHTML = '<table style="margin-top:12px"><tbody>' + linhas.map(function(l){
+        var tag = l[1] === null ? '<span class="tag al">aguarde</span>'
+                : l[1] ? '<span class="tag ok">ok</span>' : '<span class="tag no">falhou</span>';
+        return '<tr><td style="width:230px">' + esc(l[0]) + '</td><td>' + tag + ' ' + esc(l[2]||'') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    }
+    async function t(nome, corpo, ler){
+      linhas.push([nome, null, 'testando...']); pinta();
+      try{ var r = await api(corpo); var v = ler(r); linhas[linhas.length-1] = [nome, v.ok, v.txt]; }
+      catch(e){ linhas[linhas.length-1] = [nome, false, e.message]; }
+      pinta();
+    }
+    await t('Buscar produto no ERP', { acao:'buscar', termo:'dipirona' },
+      function(r){ return { ok:r.ok === true, txt: r.ok ? (r.total + ' resultados') : 'resposta inesperada' }; });
+    await t('Ler a vitrine no ar', { acao:'vitrine' },
+      function(r){ return { ok:r.ok === true, txt: r.ok ? (r.total + ' itens') : 'resposta inesperada' }; });
+    await t('Conferir no ERP (simulação)',
+      { acao:'salvar', dry_run:true, substituir:true, itens:[{ product_id:220, ordem:1 }] },
+      function(r){ return { ok:!!r.resumo,
+        txt: r.resumo ? (r.resumo.aceitos + ' de ' + r.resumo.pedidos + ' aceitos') : 'resposta inesperada' }; });
+    await t('Baixar imagem por URL',
+      { acao:'imagem', url:'https://prismen8n.prismeapp.com.br/favicon.ico' },
+      function(r){ return { ok:r.ok === true && !!r.b64,
+        txt: r.ok ? (Math.round(r.bytes/1024*10)/10 + ' KB, ' + r.mime) : (r.erro || 'sem resposta') }; });
+    var cx = $('cx').value.trim();
+    linhas.push(['Busca de imagens (embed do Google)', cx ? true : null,
+      cx ? 'cx preenchido; o resultado aparece no painel de foto de cada produto' : 'falta o cx aqui em cima']);
+    pinta();
+    $('testar').disabled = false;
+  });
+
+  // ---------- publicar ----------
+  function payload(dry){
+    return {
+      acao:'salvar', dry_run:!!dry, substituir:true, criado_por:'pagina-carga',
+      itens: itens.map(function(it, i){
+        var o = { product_id:it.product_id, ordem:i+1, alt_text:it.alt_text||it.title };
+        if (it.thumb_b64){ o.thumb_b64 = it.thumb_b64; o.largura = it.largura; o.altura = it.altura; }
+        return o;
+      })
+    };
+  }
+
+  async function enviar(dry){
+    if (!itens.length){ aviso('A vitrine está vazia.', 'erro'); return; }
+    $('simular').disabled = true; $('publicar').disabled = true;
+    aviso(dry ? 'Conferindo cada produto no ERP...' : 'Publicando...');
+    try{
+      var r = await api(payload(dry));
+      var ok = r.resumo.aceitos, total = r.resumo.pedidos;
+      if (r.recusados && r.recusados.length){
+        r.recusados.forEach(function(x){ var it = achar(x.product_id); if (it) it.bloqueio = x.motivo; });
+        pintarVitrine();
+      }
+      if (dry){
+        aviso(ok + ' de ' + total + ' passaram. Nada foi gravado ainda.'
+          + (ok < total ? ' Os recusados estão marcados na lista acima.' : ''), ok < total ? 'al' : '');
+        $('publicar').disabled = ok === 0;
+      } else {
+        aviso('Vitrine publicada: ' + ok + ' produtos na loja ' + r.loja + '.');
+        $('publicar').disabled = true;
+      }
+    }catch(err){ aviso('Falhou: ' + err.message, 'erro'); }
+    $('simular').disabled = false;
+  }
+
+  $('simular').addEventListener('click', function(){ enviar(true); });
+  $('publicar').addEventListener('click', function(){
+    if (!confirm('Isso troca a vitrine que os clientes veem no WhatsApp. Confirma?')) return;
+    enviar(false);
+  });
+
+  pintarVitrine();
+})();
+</script>
+</body>
+</html>
