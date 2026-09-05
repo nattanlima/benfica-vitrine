@@ -82,12 +82,14 @@
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
   table{width:100%;border-collapse:collapse;font-size:13px}
   td{padding:6px 8px;border-bottom:1px solid var(--linha)}
-  /* caixa onde o Google renderiza os resultados de imagem */
-  #cse-slot{margin-top:10px;min-height:0}
-  #cse-box .gsc-control-cse{background:transparent;border:0;padding:0;font-family:inherit}
-  #cse-box .gsc-search-box,#cse-box .gsc-above-wrapper-area{display:none} /* a caixa de busca e a nossa */
-  #cse-box .gsc-imageResult{cursor:pointer}
-  #cse-box .gsc-imageResult:hover{outline:2px solid var(--verde);outline-offset:1px;border-radius:4px}
+  /* grade de resultados da busca de imagem */
+  .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-top:12px}
+  .cel{border:1px solid var(--linha);border-radius:8px;overflow:hidden;background:var(--card);
+    cursor:pointer;text-align:left;padding:0;font-weight:400}
+  .cel:hover{border-color:var(--verde);outline:2px solid var(--verde);outline-offset:-1px}
+  .cel img{width:100%;height:118px;object-fit:contain;background:#fff;display:block}
+  .cel .leg{font-size:11px;color:var(--fraco);padding:5px 7px;line-height:1.3;overflow:hidden;
+    white-space:nowrap;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -114,16 +116,6 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
       <label for="loja">Loja</label>
       <input type="number" id="loja" value="1" min="1" autocomplete="off">
     </div>
-  </div>
-  <div style="margin-top:12px">
-    <label for="cx">ID do mecanismo de busca do Google (cx), só para procurar imagens</label>
-    <input type="text" id="cx" class="mono" autocomplete="off" placeholder="opcional. em branco, a busca de imagem fica desligada">
-    <p class="nota">Um cadastro de uma vez só, sem chave e sem Google Cloud:
-      <a href="https://programmablesearchengine.google.com/controlpanel/all"
-         target="_blank" rel="noopener">criar o mecanismo de busca</a>, ligar a
-      busca de imagens e listar os sites onde procurar (laboratórios, distribuidores,
-      farmácias online; o Google só procura nos sites listados). Copie o
-      <b>ID do mecanismo</b> para este campo.</p>
   </div>
   <div class="barra" style="margin-top:13px">
     <button id="carregar">Carregar vitrine atual</button>
@@ -166,9 +158,6 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
 </div>
 
 <input type="file" id="picker" accept="image/*" hidden>
-<!-- o elemento do Google vive aqui e e MOVIDO para dentro do painel aberto,
-     porque re-renderizar a vitrine com innerHTML destruiria os resultados -->
-<div id="cse-holder" hidden><div id="cse-box"></div></div>
 
 <script>
 (function(){
@@ -177,9 +166,10 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
   var itens = [];
   var aberto = null;            // product_id com o painel de imagem aberto
   var imgTermo = null;          // ultimo termo procurado
-  var cse = { estado:'nao', fila:null, aviso:'' };   // estado do embed do Google
+  // busca de imagem do painel aberto: o webhook consulta o Google Imagens (Serper)
+  var busca = { estado:'', erro:'', imagens:[] };
 
-  ['url','token','loja','cx'].forEach(function(k){
+  ['url','token','loja'].forEach(function(k){
     try{ var v = localStorage.getItem('benfica_'+k); if(v) $(k).value = v; }catch(e){}
     // 'input' e nao 'change': com 'change' o valor so era salvo ao sair do campo
     $(k).addEventListener('input', function(){
@@ -195,6 +185,14 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
     });
   }
   function achar(id){ return itens.find(function(x){ return x.product_id === id; }); }
+  // "CIMEGRIPE 20 CAPSULAS, CAIXA" -> "CIMEGRIPE": corta na virgula e no primeiro
+  // token com digito. Termo curto acha mais nos sites de laboratorio e farmacia.
+  function nomeCurto(it){
+    var t = String(it.title || '').split(',')[0].trim();
+    var toks = t.split(/\s+/), out = [];
+    for (var i = 0; i < toks.length; i++){ if (/\d/.test(toks[i])) break; out.push(toks[i]); }
+    return out.join(' ') || t;
+  }
 
   async function api(corpo){
     var url = $('url').value.trim(), token = $('token').value.trim();
@@ -244,7 +242,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
       var r = await processar(src);
       it.thumb_b64 = r.thumb_b64; it.bytes = r.bytes;
       it.largura = r.largura; it.altura = r.altura;
-      aberto = null; imgTermo = null;
+      aberto = null; imgTermo = null; limparBusca();
       pintarVitrine();
       aviso('Foto de ' + esc(it.title) + ' pronta: ' + (r.bytes/1024).toFixed(1) + ' KB.');
     }catch(err){ aviso(err.message, 'erro'); }
@@ -284,102 +282,63 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
     }catch(err){ aviso('Não consegui baixar: ' + err.message, 'erro'); }
   }
 
-  // ---------- embed do Google (Programmable Search Engine) ----------
-  // So precisa do cx. Sem chave, sem Google Cloud, sem cota diaria.
-  function cseCarregar(cx){
-    if (cse.estado !== 'nao') return;
-    cse.estado = 'carregando';
-    window.__gcse = {
-      parsetags: 'explicit',
-      initializationCallback: function(){
-        try{
-          google.search.cse.element.render({
-            div: 'cse-box', tag: 'search', gname: 'benfica',
-            attributes: { enableImageSearch: true, defaultToImageSearch: true,
-                          disableWebSearch: true, imageSearchLayout: 'column',
-                          enableAutoComplete: false, enableHistory: false }
-          });
-          cse.estado = 'pronto';
-          var carregando = $('cse-carregando'); if (carregando) carregando.remove();
-          if (cse.fila){ cseExecutar(cse.fila); cse.fila = null; }
-        }catch(e){ cse.estado = 'erro'; cse.aviso = 'O Google não inicializou: ' + e.message; pintarVitrine(); }
-      },
-      searchCallbacks: { image: { rendered: cseRenderizou } }
-    };
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://cse.google.com/cse.js?cx=' + encodeURIComponent(cx);
-    s.onerror = function(){ cse.estado = 'erro'; cse.aviso = 'Não consegui carregar o script do Google. A página está sendo aberta por http?'; pintarVitrine(); };
-    document.head.appendChild(s);
-  }
-  function cseExecutar(termo){
-    if (cse.estado !== 'pronto'){ cse.fila = termo; return; }
-    try{ google.search.cse.element.getElement('benfica').execute(termo); }
-    catch(e){ cse.aviso = 'Falha ao procurar: ' + e.message; pintarVitrine(); }
-  }
-  // Depois que o Google desenha os resultados, um clique em qualquer imagem
-  // vira "baixar essa" em vez de abrir o site de origem.
-  function cseRenderizou(gname, query, promos, results){
-    (results || []).forEach(function(el){
-      if (el.__benfica) return; el.__benfica = true;
-      el.addEventListener('click', function(ev){
-        if (aberto == null) return;
-        var a = ev.target.closest('a');
-        var img = (a && a.querySelector('img')) || el.querySelector('img');
-        var cheia = a ? (a.getAttribute('href') || '') : '';
-        var mini = img ? (img.currentSrc || img.src || '') : '';
-        var url = /^https?:/.test(cheia) ? cheia : mini;
-        if (!url) return;
-        ev.preventDefault(); ev.stopPropagation();
-        cseMoverPara(null);           // esconde os resultados; a mensagem de andamento fica visivel
-        baixar(aberto, url, mini);
-      }, true);
-    });
-  }
-  function cseMoverPara(slot){
-    var box = $('cse-box');
-    if (slot && box.parentNode !== slot) slot.appendChild(box);
-    else if (!slot && box.parentNode !== $('cse-holder')) $('cse-holder').appendChild(box);
-  }
-
-  function procurar(id, termo){
-    var cx = $('cx').value.trim();
-    if (!cx){
-      cse.aviso = 'A busca de imagem está desligada porque falta o ID do mecanismo (cx) na Conexão, '
-        + 'lá em cima. É um cadastro de uma vez só no Google, e o link está lá. Enquanto isso, '
-        + 'dá para usar Escolher arquivo, Ctrl+V ou colar o endereço de uma imagem aqui embaixo.';
-      pintarVitrine(); return;
-    }
-    cse.aviso = ''; imgTermo = termo;
+  // ---------- busca de imagem: Google Imagens via webhook (Serper) ----------
+  // A chave fica no n8n. A pagina so manda o termo e recebe a lista.
+  function limparBusca(){ busca = { estado:'', erro:'', imagens:[] }; }
+  async function procurar(id, termo){
+    termo = String(termo || '').trim();
+    imgTermo = termo;
+    if (!termo){ busca = { estado:'', erro:'Digite o que procurar.', imagens:[] }; pintarVitrine(); return; }
+    busca = { estado:'carregando', erro:'', imagens:[] };
     pintarVitrine();
-    cseCarregar(cx);
-    cseExecutar(termo);
+    try{
+      var r = await api({ acao:'imagens', termo:termo });
+      if (aberto !== id) return;                       // o painel mudou no meio
+      if (!r.ok){ busca = { estado:'', erro:r.erro || 'A busca falhou.', imagens:[] }; }
+      else if (!r.total){ busca = { estado:'pronto', erro:'Nada encontrado para "' + termo + '". Tente um termo mais curto ou o EAN.', imagens:[] }; }
+      else busca = { estado:'pronto', erro:'', imagens:r.imagens };
+    }catch(err){ busca = { estado:'', erro:'A busca falhou: ' + err.message, imagens:[] }; }
+    pintarVitrine();
+  }
+  function grade(){
+    if (busca.estado === 'carregando') return '<p class="vazio">Procurando no Google Imagens...</p>';
+    var h = busca.erro ? '<p class="vazio" style="color:var(--erro)">' + esc(busca.erro) + '</p>' : '';
+    if (!busca.imagens.length) return h;
+    h += '<div class="grade">';
+    busca.imagens.forEach(function(im, i){
+      var leg = (im.fonte || '') + (im.largura ? ' · ' + im.largura + '×' + im.altura : '');
+      h += '<button type="button" class="cel" data-img="' + i + '" title="' + esc(im.titulo) + '">'
+        +  '<img src="' + esc(im.thumb) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
+        +  '<div class="leg">' + esc(leg) + '</div></button>';
+    });
+    return h + '</div>';
   }
 
   // ---------- vitrine ----------
   function painel(it){
-    var termo = imgTermo != null ? imgTermo : (it.ean || String(it.title||'').split(',')[0]);
+    // termo padrao: o titulo ate a virgula ("CIMEGRIPE 20 CAPSULAS"). Nome = so a marca. EAN = codigo.
+    var termo = imgTermo != null ? imgTermo : String(it.title||'').split(',')[0].trim();
+    var google = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(termo || it.title || '');
     return '<div class="painel">'
       + '<div class="tit">Foto de ' + esc(it.title) + '</div>'
-      + '<div class="barra">'
-      +   '<button class="mini" data-arq="'+it.product_id+'">Escolher arquivo</button>'
-      +   '<span class="nota" style="margin:0">ou dê <b>Ctrl+V</b> agora para colar uma imagem copiada</span>'
-      + '</div>'
-      + '<div class="urlbox" style="margin-top:12px">'
-      +   '<input type="text" id="imgtermo" value="' + esc(termo) + '" placeholder="o que procurar">'
+      + '<div class="urlbox" style="margin-top:0">'
+      +   '<input type="text" id="imgtermo" value="' + esc(termo) + '" placeholder="o que procurar" autocomplete="off">'
       +   '<button class="mini primario" data-buscaimg="'+it.product_id+'">Procurar imagens</button>'
-      +   '<button class="mini" data-ean="'+it.product_id+'"' + (it.ean ? '' : ' disabled') + '>EAN</button>'
       +   '<button class="mini" data-nome="'+it.product_id+'">Nome</button>'
+      +   '<button class="mini" data-ean="'+it.product_id+'"' + (it.ean ? '' : ' disabled') + '>EAN</button>'
       + '</div>'
-      + (cse.aviso ? '<p class="vazio" style="color:var(--erro)">' + esc(cse.aviso) + '</p>' : '')
-      + (cse.estado === 'carregando' ? '<p class="vazio" id="cse-carregando">Carregando o Google...</p>' : '')
-      + '<div id="cse-slot"></div>'
-      + '<div class="urlbox" style="margin-top:12px">'
-      +   '<input type="url" id="urlimg" placeholder="ou cole aqui o endereço de uma imagem">'
+      + grade()
+      + '<div class="barra" style="margin-top:12px">'
+      +   '<button class="mini" data-arq="'+it.product_id+'">Escolher arquivo</button>'
+      +   '<a class="mini" href="' + esc(google) + '" target="_blank" rel="noopener" '
+      +      'style="font-size:12.5px;color:var(--verde);font-weight:600;text-decoration:none">Abrir no Google Imagens</a>'
+      +   '<span class="nota" style="margin:0">copie uma imagem lá e dê <b>Ctrl+V</b> aqui</span>'
+      + '</div>'
+      + '<div class="urlbox" style="margin-top:10px">'
+      +   '<input type="url" id="urlimg" placeholder="ou cole aqui o endereço de uma imagem" autocomplete="off">'
       +   '<button class="mini" data-url="'+it.product_id+'">Baixar</button>'
       + '</div>'
-      + '<div class="achar">Os resultados do Google abrem por cima da página. Toque numa imagem '
-      +   'para baixar, redimensionar e salvar; o X fecha sem escolher. '
+      + '<div class="achar">Toque numa imagem para baixar, redimensionar (300×300) e salvar. '
       +   'Confira se você tem o direito de usar. O caminho limpo é pedir o material ao '
       +   'laboratório ou ao distribuidor.</div>'
       + '<div class="barra" style="margin-top:10px">'
@@ -389,7 +348,6 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
   }
 
   function pintarVitrine(){
-    cseMoverPara(null);   // tira o elemento do Google antes de destruir o HTML
     $('contador').textContent = itens.length + ' de ' + LIMITE;
     if (!itens.length){
       $('vitrine').innerHTML = '<p class="vazio">Nenhum produto ainda. Busque acima e vá adicionando.</p>';
@@ -421,43 +379,49 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
     });
     $('vitrine').innerHTML = h;
     $('publicar').disabled = true;
-    if (aberto != null && $('cse-slot')) cseMoverPara($('cse-slot'));
   }
 
   $('vitrine').addEventListener('click', function(e){
-    var b = e.target.closest('[data-tira],[data-sobe],[data-desce],[data-foto],[data-arq],[data-url],[data-fecha],[data-tirafoto],[data-buscaimg],[data-ean],[data-nome]');
+    var b = e.target.closest('[data-tira],[data-sobe],[data-desce],[data-foto],[data-arq],[data-url],[data-fecha],[data-tirafoto],[data-buscaimg],[data-ean],[data-nome],[data-img]');
     if (!b) return;
     var d = b.dataset;
-    if (d.buscaimg != null){
-      var ci = $('imgtermo'); procurar(+d.buscaimg, ci ? ci.value.trim() : ''); return;
-    }
-    if (d.ean != null){ var i1 = achar(+d.ean); if (i1) procurar(i1.product_id, i1.ean); return; }
-    if (d.nome != null){
-      var i2 = achar(+d.nome);
-      if (i2) procurar(i2.product_id, String(i2.title||'').split(',')[0]);
+    if (d.img != null){                       // escolheu uma imagem da grade
+      var im = busca.imagens[+d.img];
+      if (im && aberto != null){ limparBusca(); pintarVitrine(); baixar(aberto, im.url, im.thumb); }
       return;
     }
+    if (d.buscaimg != null){
+      var ci = $('imgtermo'); procurar(+d.buscaimg, ci ? ci.value : ''); return;
+    }
+    if (d.ean != null){ var i1 = achar(+d.ean); if (i1) procurar(i1.product_id, i1.ean); return; }
+    if (d.nome != null){ var i2 = achar(+d.nome); if (i2) procurar(i2.product_id, nomeCurto(i2)); return; }
     if (d.tira != null){
       itens = itens.filter(function(x){ return x.product_id !== +d.tira; });
-      if (aberto === +d.tira){ aberto = null; imgTermo = null; }
+      if (aberto === +d.tira){ aberto = null; imgTermo = null; limparBusca(); }
       pintarVitrine(); aviso('Removido da lista. Sai do ar quando você publicar.', 'al');
     } else if (d.sobe != null){
       var i = +d.sobe, t = itens[i-1]; itens[i-1] = itens[i]; itens[i] = t; pintarVitrine();
     } else if (d.desce != null){
       var j = +d.desce, u = itens[j+1]; itens[j+1] = itens[j]; itens[j] = u; pintarVitrine();
     } else if (d.foto != null){
-      aberto = (aberto === +d.foto) ? null : +d.foto; imgTermo = null; cse.aviso = ''; pintarVitrine();
+      aberto = (aberto === +d.foto) ? null : +d.foto; imgTermo = null; limparBusca(); pintarVitrine();
     } else if (d.arq != null){
       aberto = +d.arq; $('picker').click();
     } else if (d.url != null){
       var campo = $('urlimg'); baixar(+d.url, campo ? campo.value.trim() : '', null);
     } else if (d.fecha != null){
-      aberto = null; imgTermo = null; cse.aviso = ''; pintarVitrine();
+      aberto = null; imgTermo = null; limparBusca(); pintarVitrine();
     } else if (d.tirafoto != null){
       var it = achar(+d.tirafoto);
       if (it){ it.thumb_b64 = ''; it.bytes = 0; }
       pintarVitrine();
     }
+  });
+  // Enter no campo do termo procura; Enter no campo de URL baixa
+  $('vitrine').addEventListener('keydown', function(e){
+    if (e.key !== 'Enter' || aberto == null) return;
+    if (e.target.id === 'imgtermo'){ e.preventDefault(); procurar(aberto, e.target.value); }
+    else if (e.target.id === 'urlimg'){ e.preventDefault(); baixar(aberto, e.target.value.trim(), null); }
   });
 
   // ---------- busca de produto ----------
@@ -497,7 +461,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
     itens.push({ product_id:p.product_id, ean:p.ean||'', title:p.title, preco:p.preco,
                  de:p.de, oferta:p.oferta, estoque:p.estoque, bloqueio:null,
                  thumb_b64:'', alt_text:p.title });
-    aberto = p.product_id; imgTermo = null; cse.aviso = '';   // ja abre o painel da foto
+    aberto = p.product_id; imgTermo = null; limparBusca();   // ja abre o painel da foto
     pintarVitrine();
     pintarResultados({ termo:$('termo').value, resultados:window.__ultimaBusca });
   });
@@ -528,7 +492,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
                  oferta:d.oferta, estoque:d.estoque, bloqueio:d.bloqueio,
                  thumb_b64:d.thumb_b64||'', alt_text:d.alt_text||d.title };
       });
-      aberto = null; imgTermo = null; pintarVitrine();
+      aberto = null; imgTermo = null; limparBusca(); pintarVitrine();
       var ruins = itens.filter(function(x){ return x.bloqueio; }).length;
       aviso(itens.length + ' produtos no ar.'
         + (ruins ? ' ' + ruins + ' com problema: já não aparecem para o cliente.' : ''),
@@ -566,10 +530,8 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
       { acao:'imagem', url:'https://prismen8n.prismeapp.com.br/favicon.ico' },
       function(r){ return { ok:r.ok === true && !!r.b64,
         txt: r.ok ? (Math.round(r.bytes/1024*10)/10 + ' KB, ' + r.mime) : (r.erro || 'sem resposta') }; });
-    var cx = $('cx').value.trim();
-    linhas.push(['Busca de imagens (embed do Google)', cx ? true : null,
-      cx ? 'cx preenchido; o resultado aparece no painel de foto de cada produto' : 'falta o cx aqui em cima']);
-    pinta();
+    await t('Buscar imagens no Google (Serper)', { acao:'imagens', termo:'cimegripe' },
+      function(r){ return { ok:r.ok === true && r.total > 0, txt: r.ok ? (r.total + ' imagens') : (r.erro || 'sem resposta') }; });
     $('testar').disabled = false;
   });
 
