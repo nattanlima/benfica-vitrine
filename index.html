@@ -4,89 +4,129 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vitrine do WhatsApp · Drogaria Benfica</title>
+<script>
+// Tema: ?tema=escuro ou ?tema=claro (para o iframe do Prisme Chatbot); sem parametro, segue o sistema.
+(function(){
+  // Dentro de um iframe (Prisme Chatbot) o padrao e claro, que e o tema padrao da plataforma;
+  // o tema escuro da plataforma passa ?tema=escuro na URL do iframe. Sozinha, a pagina segue o sistema.
+  var q = new URLSearchParams(location.search).get('tema');
+  var emIframe = false; try{ emIframe = window.self !== window.top; }catch(e){ emIframe = true; }
+  var escuro = q ? /^(escuro|dark)$/i.test(q)
+             : (!emIframe && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if (escuro) document.documentElement.setAttribute('data-theme', 'dark');
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+  /* Tema do Prisme Chatbot (bot.prismeapp.com.br), medido em 05/09/2026:
+     Nunito, primaria #00ba70, cards brancos raio 16 com sombra 0 6px 24px 5%,
+     botoes e campos raio 10, rotulos de secao 11.2px caixa alta 54%. */
   :root{
-    --bg:#f6f7f5; --card:#fff; --linha:#e2e6e0; --txt:#16211a; --fraco:#5d6b62;
-    --verde:#0f5132; --verde-claro:#e8f1ec; --erro:#8a1c1c; --erro-bg:#fbeaea;
-    --alerta:#7a5200; --alerta-bg:#fdf3e0; --raio:10px;
+    color-scheme:light;
+    --bg:#fafafa; --card:#fff; --linha:rgba(0,0,0,.05); --campo:rgba(0,0,0,.1);
+    --txt:rgba(0,0,0,.87); --titulo:#1e293b; --sub:#64748b; --fraco:rgba(0,0,0,.54);
+    --primaria:#00ba70; --primaria-forte:#00824e; --primaria-borda:rgba(0,186,112,.5);
+    --primaria-fundo:rgba(16,185,129,.1);
+    --ok:#059669; --ok-bg:rgba(16,185,129,.12);
+    --alerta:#b45309; --alerta-bg:rgba(245,158,11,.14);
+    --erro:#b91c1c; --erro-bg:rgba(239,68,68,.12);
+    --info:#1d4ed8; --info-bg:rgba(59,130,246,.12);
+    --hover:rgba(0,0,0,.04); --sombra:0 6px 24px rgba(0,0,0,.05);
+    --raio-card:16px; --raio:10px;
   }
-  @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]){
-      --bg:#12160f; --card:#1a1f18; --linha:#2c342a; --txt:#e8ede7; --fraco:#9aa89f;
-      --verde:#5cb98a; --verde-claro:#1c2a22; --erro:#f0a0a0; --erro-bg:#301a1a;
-      --alerta:#e0b768; --alerta-bg:#2c2415;
-    }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#1c1c1c; --card:#1c1c1c; --linha:rgba(255,255,255,.08); --campo:rgba(255,255,255,.18);
+    --txt:#eeeeee; --titulo:#f1f5f9; --sub:#94a3b8; --fraco:rgba(255,255,255,.6);
+    --primaria-fundo:rgba(16,185,129,.15);
+    --ok:#34d399; --ok-bg:rgba(16,185,129,.18);
+    --alerta:#fbbf24; --alerta-bg:rgba(245,158,11,.18);
+    --erro:#f87171; --erro-bg:rgba(239,68,68,.18);
+    --info:#93c5fd; --info-bg:rgba(59,130,246,.18);
+    --hover:rgba(255,255,255,.06); --sombra:0 6px 24px rgba(0,0,0,.5);
   }
   *{box-sizing:border-box}
+  html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--txt);
-    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  .wrap{max-width:920px;margin:0 auto;padding:26px 18px 90px}
-  h1{font-size:21px;margin:0 0 3px;letter-spacing:-.01em}
-  .sub{color:var(--fraco);font-size:13.5px;margin:0 0 22px}
-  section{background:var(--card);border:1px solid var(--linha);border-radius:var(--raio);
-    padding:17px 19px;margin-bottom:14px}
-  h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fraco);
-    margin:0 0 13px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
-  .cont{font-size:12px;color:var(--fraco);text-transform:none;letter-spacing:0}
-  label{display:block;font-size:12.5px;color:var(--fraco);margin:0 0 5px}
+    font:14px/1.43 Nunito,Roboto,Helvetica,Arial,sans-serif;letter-spacing:.14px}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 24px 80px}
+  @media(max-width:700px){.wrap{padding:16px 12px 60px}}
+  h1{font-size:26px;line-height:1.25;margin:0 0 2px;color:var(--titulo);font-weight:700;letter-spacing:.2px}
+  .sub{color:var(--sub);font-size:15px;margin:0 0 20px}
+  section{background:var(--card);border:1px solid var(--linha);border-radius:var(--raio-card);
+    box-shadow:var(--sombra);padding:22px 24px;margin-bottom:16px}
+  @media(max-width:700px){section{padding:16px}}
+  h2{font-size:11.2px;text-transform:uppercase;letter-spacing:.6px;color:var(--fraco);
+    margin:0 0 14px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .cont{font-size:12px;color:var(--fraco);text-transform:none;letter-spacing:0;font-weight:600}
+  label{display:block;font-size:12px;color:var(--fraco);margin:0 0 5px}
   input[type=text],input[type=password],input[type=number],input[type=search],input[type=url]{
-    width:100%;padding:9px 11px;border:1px solid var(--linha);border-radius:7px;
-    background:var(--bg);color:var(--txt);font:inherit}
+    width:100%;padding:9px 12px;border:1px solid var(--campo);border-radius:var(--raio);
+    background:transparent;color:var(--txt);font:inherit;font-size:14px;outline:none}
+  input:focus{border-color:var(--primaria);box-shadow:0 0 0 1px var(--primaria)}
+  input::placeholder{color:var(--fraco)}
   .grid{display:grid;gap:12px}
   .g3{grid-template-columns:2fr 1.2fr .7fr}
   @media(max-width:700px){.g3{grid-template-columns:1fr}}
-  button{font:inherit;font-weight:600;border-radius:7px;padding:9px 15px;cursor:pointer;
-    border:1px solid var(--linha);background:var(--card);color:var(--txt);white-space:nowrap}
-  button:hover:not(:disabled){border-color:var(--verde);color:var(--verde)}
+  button{font:inherit;font-size:14px;font-weight:700;border-radius:var(--raio);padding:6px 15px;cursor:pointer;
+    border:1px solid var(--primaria-borda);background:transparent;color:var(--primaria);white-space:nowrap;
+    line-height:1.6;transition:background .15s,border-color .15s}
+  button:hover:not(:disabled){background:var(--primaria-fundo);border-color:var(--primaria)}
   button:disabled{opacity:.4;cursor:not-allowed}
-  button.primario{background:var(--verde);border-color:var(--verde);color:#fff}
-  button.primario:hover:not(:disabled){color:#fff;filter:brightness(1.1)}
-  button.mini{padding:4px 9px;font-size:12.5px;font-weight:500}
+  button.primario{background:var(--primaria);border-color:var(--primaria);color:#fff}
+  button.primario:hover:not(:disabled){background:var(--primaria-forte);border-color:var(--primaria-forte)}
+  button.mini{padding:3px 10px;font-size:12.5px;font-weight:700;line-height:1.6}
+  button.neutro{border-color:var(--campo);color:var(--txt)}
+  button.neutro:hover:not(:disabled){background:var(--hover);border-color:var(--campo)}
   .barra{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
   .busca{display:flex;gap:9px}
   .busca input{flex:1}
   .linha{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--linha);align-items:center}
   .linha.sembaixo{border-bottom:0;padding-bottom:4px}
   .info{flex:1;min-width:0}
-  .nome{font-size:14px;font-weight:600;line-height:1.3;word-break:break-word}
+  .nome{font-size:14px;font-weight:700;line-height:1.3;word-break:break-word;color:var(--titulo)}
   .meta{font-size:12.5px;color:var(--fraco);margin-top:2px}
-  .preco{color:var(--verde);font-weight:600}
+  .preco{color:var(--primaria-forte);font-weight:700}
+  :root[data-theme="dark"] .preco{color:var(--primaria)}
   .risco{text-decoration:line-through;color:var(--fraco);font-weight:400}
-  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700}
   .no{background:var(--erro-bg);color:var(--erro)}
   .al{background:var(--alerta-bg);color:var(--alerta)}
-  .ok{background:var(--verde-claro);color:var(--verde)}
-  .thumb{width:52px;height:52px;border-radius:7px;object-fit:cover;border:1px solid var(--linha);
-    flex:none;cursor:pointer}
-  .semfoto{width:52px;height:52px;border-radius:7px;border:1px dashed var(--linha);flex:none;
+  .ok{background:var(--ok-bg);color:var(--ok)}
+  .thumb{width:52px;height:52px;border-radius:var(--raio);object-fit:cover;border:1px solid var(--linha);
+    flex:none;cursor:pointer;background:#fff}
+  .semfoto{width:52px;height:52px;border-radius:var(--raio);border:1px dashed var(--campo);flex:none;
     display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--fraco);
     text-align:center;cursor:pointer;line-height:1.2;padding:3px}
-  .semfoto:hover{border-color:var(--verde);color:var(--verde)}
+  .semfoto:hover{border-color:var(--primaria);color:var(--primaria)}
   .ordem{display:flex;flex-direction:column;gap:2px;flex:none}
-  .ordem button{padding:1px 7px;font-size:11px;line-height:1.5}
-  .painel{background:var(--bg);border:1px solid var(--linha);border-radius:8px;
-    padding:13px 15px;margin:0 0 11px 64px}
-  .painel .tit{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--fraco);
-    font-weight:600;margin-bottom:9px}
-  .painel .urlbox{display:flex;gap:8px;margin-top:10px}
-  .painel .urlbox input{flex:1}
-  .achar{margin-top:10px;font-size:12.5px;color:var(--fraco)}
+  .ordem button{padding:0 7px;font-size:11px;line-height:1.7;border-color:var(--campo);color:var(--fraco)}
+  .painel{background:var(--bg);border:1px solid var(--linha);border-radius:var(--raio-card);
+    padding:14px 16px;margin:0 0 12px 64px}
+  @media(max-width:700px){.painel{margin-left:0}}
+  .painel .tit{font-size:11.2px;text-transform:uppercase;letter-spacing:.6px;color:var(--fraco);
+    font-weight:600;margin-bottom:10px}
+  .painel .urlbox{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .painel .urlbox input{flex:1;min-width:200px}
+  .achar{margin-top:10px;font-size:12px;color:var(--fraco)}
   .vazio{color:var(--fraco);font-size:13.5px;padding:10px 0}
-  .aviso{border-radius:7px;padding:10px 13px;font-size:13.5px;margin-top:12px;
-    background:var(--verde-claro);color:var(--verde)}
+  .aviso{border-radius:var(--raio);padding:10px 14px;font-size:13.5px;margin-top:12px;
+    background:var(--ok-bg);color:var(--ok);font-weight:600}
   .aviso.erro{background:var(--erro-bg);color:var(--erro)}
   .aviso.al{background:var(--alerta-bg);color:var(--alerta)}
-  .nota{color:var(--fraco);font-size:12.5px;margin-top:9px}
-  .nota a{color:var(--verde);font-weight:600;text-decoration:none}
-  .nota a:hover{text-decoration:underline}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .nota{color:var(--fraco);font-size:12px;margin-top:9px}
+  .nota a,a.link{color:var(--primaria);font-weight:700;text-decoration:none}
+  .nota a:hover,a.link:hover{text-decoration:underline}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
   table{width:100%;border-collapse:collapse;font-size:13px}
   td{padding:6px 8px;border-bottom:1px solid var(--linha)}
   /* grade de resultados da busca de imagem */
   .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-top:12px}
-  .cel{border:1px solid var(--linha);border-radius:8px;overflow:hidden;background:var(--card);
-    cursor:pointer;text-align:left;padding:0;font-weight:400}
-  .cel:hover{border-color:var(--verde);outline:2px solid var(--verde);outline-offset:-1px}
+  .cel{border:1px solid var(--linha);border-radius:var(--raio);overflow:hidden;background:var(--card);
+    cursor:pointer;text-align:left;padding:0;font-weight:400;color:var(--txt);box-shadow:var(--sombra)}
+  .cel:hover{border-color:var(--primaria);outline:2px solid var(--primaria);outline-offset:-1px;background:var(--card)}
   .cel img{width:100%;height:118px;object-fit:contain;background:#fff;display:block}
   .cel .leg{font-size:11px;color:var(--fraco);padding:5px 7px;line-height:1.3;overflow:hidden;
     white-space:nowrap;text-overflow:ellipsis}
@@ -96,8 +136,7 @@
 <div class="wrap">
 
 <h1>Vitrine do WhatsApp</h1>
-<p class="sub">Drogaria Benfica. Busca no ERP, monta a vitrine e publica.
-Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
+<p class="sub">Drogaria Benfica · escolha os produtos, a foto de cada um e publique.</p>
 
 <section>
   <h2>Conexão</h2>
@@ -346,8 +385,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
       + grade()
       + '<div class="barra" style="margin-top:12px">'
       +   '<button class="mini" data-arq="'+it.product_id+'">Escolher arquivo</button>'
-      +   '<a class="mini" href="' + esc(google) + '" target="_blank" rel="noopener" '
-      +      'style="font-size:12.5px;color:var(--verde);font-weight:600;text-decoration:none">Abrir no Google Imagens</a>'
+      +   '<a class="link" style="font-size:12.5px" href="' + esc(google) + '" target="_blank" rel="noopener">Abrir no Google Imagens</a>'
       +   '<span class="nota" style="margin:0">copie uma imagem lá e dê <b>Ctrl+V</b> aqui</span>'
       + '</div>'
       + '<div class="urlbox" style="margin-top:10px">'
@@ -358,8 +396,8 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
       +   'Confira se você tem o direito de usar. O caminho limpo é pedir o material ao '
       +   'laboratório ou ao distribuidor.</div>'
       + '<div class="barra" style="margin-top:10px">'
-      +   '<button class="mini" data-fecha="1">Fechar</button>'
-      +   (it.thumb_b64 ? '<button class="mini" data-tirafoto="'+it.product_id+'">Remover foto</button>' : '')
+      +   '<button class="mini neutro" data-fecha="1">Fechar</button>'
+      +   (it.thumb_b64 ? '<button class="mini neutro" data-tirafoto="'+it.product_id+'">Remover foto</button>' : '')
       + '</div></div>';
   }
 
@@ -390,7 +428,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
         +   (it.ean ? ' · <span class="mono">' + esc(it.ean) + '</span>' : '')
         +   (it.laboratorio ? ' · ' + esc(it.laboratorio) : '')
         +   ' · ' + preco + ' · estoque ' + it.estoque + alerta + '</div></div>'
-        + '<button class="mini" data-tira="'+it.product_id+'">remover</button>'
+        + '<button class="mini neutro" data-tira="'+it.product_id+'">remover</button>'
         + '</div>'
         + (ab ? painel(it) : '');
     });
