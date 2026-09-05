@@ -102,21 +102,22 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
   <div class="grid g3">
     <div>
       <label for="url">URL do webhook</label>
-      <input type="text" id="url" class="mono"
+      <input type="text" id="url" class="mono" autocomplete="off"
         value="https://prismen8n.prismeapp.com.br/webhook/carga-destaques-benfica">
     </div>
     <div>
       <label for="token">Segredo (x-carga-token)</label>
-      <input type="password" id="token" placeholder="cole aqui">
+      <!-- new-password: impede o Chrome de preencher aqui uma senha salva de outro site -->
+      <input type="password" id="token" placeholder="cole aqui" autocomplete="new-password">
     </div>
     <div>
       <label for="loja">Loja</label>
-      <input type="number" id="loja" value="1" min="1">
+      <input type="number" id="loja" value="1" min="1" autocomplete="off">
     </div>
   </div>
   <div style="margin-top:12px">
     <label for="cx">ID do mecanismo de busca do Google (cx), só para procurar imagens</label>
-    <input type="text" id="cx" class="mono" placeholder="opcional. em branco, a busca de imagem fica desligada">
+    <input type="text" id="cx" class="mono" autocomplete="off" placeholder="opcional. em branco, a busca de imagem fica desligada">
     <p class="nota">Um cadastro de uma vez só, sem chave e sem Google Cloud:
       <a href="https://programmablesearchengine.google.com/controlpanel/all"
          target="_blank" rel="noopener">criar o mecanismo de busca</a>, ligar a
@@ -299,6 +300,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
                           enableAutoComplete: false, enableHistory: false }
           });
           cse.estado = 'pronto';
+          var carregando = $('cse-carregando'); if (carregando) carregando.remove();
           if (cse.fila){ cseExecutar(cse.fila); cse.fila = null; }
         }catch(e){ cse.estado = 'erro'; cse.aviso = 'O Google não inicializou: ' + e.message; pintarVitrine(); }
       },
@@ -329,6 +331,7 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
         var url = /^https?:/.test(cheia) ? cheia : mini;
         if (!url) return;
         ev.preventDefault(); ev.stopPropagation();
+        cseMoverPara(null);           // esconde os resultados; a mensagem de andamento fica visivel
         baixar(aberto, url, mini);
       }, true);
     });
@@ -369,13 +372,14 @@ Nada aqui fala com o banco direto: tudo passa pelo webhook do prismeN8N.</p>
       +   '<button class="mini" data-nome="'+it.product_id+'">Nome</button>'
       + '</div>'
       + (cse.aviso ? '<p class="vazio" style="color:var(--erro)">' + esc(cse.aviso) + '</p>' : '')
-      + (cse.estado === 'carregando' ? '<p class="vazio">Carregando o Google...</p>' : '')
+      + (cse.estado === 'carregando' ? '<p class="vazio" id="cse-carregando">Carregando o Google...</p>' : '')
       + '<div id="cse-slot"></div>'
       + '<div class="urlbox" style="margin-top:12px">'
       +   '<input type="url" id="urlimg" placeholder="ou cole aqui o endereço de uma imagem">'
       +   '<button class="mini" data-url="'+it.product_id+'">Baixar</button>'
       + '</div>'
-      + '<div class="achar">Toque numa imagem para baixar, redimensionar e salvar. '
+      + '<div class="achar">Os resultados do Google abrem por cima da página. Toque numa imagem '
+      +   'para baixar, redimensionar e salvar; o X fecha sem escolher. '
       +   'Confira se você tem o direito de usar. O caminho limpo é pedir o material ao '
       +   'laboratório ou ao distribuidor.</div>'
       + '<div class="barra" style="margin-top:10px">'
